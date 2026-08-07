@@ -58,10 +58,11 @@ export interface Debt {
 export interface MonthlySnapshot {
   id: string;
   user_id: string;
+  /** Premier jour du mois concerné (YYYY-MM-01). */
   month: string;
-  total_income: number;
-  total_expenses: number;
-  total_debt: number;
+  real_income: number;
+  real_expenses: number;
+  real_debt_payments: number;
   note: string | null;
   created_at: string;
 }

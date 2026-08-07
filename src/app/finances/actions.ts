@@ -160,3 +160,52 @@ export async function deleteDebt(formData: FormData) {
   revalidatePath('/finances/dettes');
   revalidatePath('/finances');
 }
+
+// --- Suivi mensuel réel ----------------------------------------------------
+/** Normalise « YYYY-MM » (input month) en date « YYYY-MM-01 ». */
+function monthToDate(formData: FormData): string {
+  const raw = str(formData, 'month');
+  return raw.length === 7 ? `${raw}-01` : raw;
+}
+
+export async function addSnapshot(formData: FormData) {
+  const { supabase, user } = await requireUser();
+  // upsert : (ré)ajouter le même mois met la ligne à jour au lieu d'échouer
+  // sur la contrainte d'unicité (user_id, month).
+  await supabase.from('monthly_snapshots').upsert(
+    {
+      user_id: user.id,
+      month: monthToDate(formData),
+      real_income: num(formData, 'real_income'),
+      real_expenses: num(formData, 'real_expenses'),
+      real_debt_payments: num(formData, 'real_debt_payments'),
+      note: optStr(formData, 'note'),
+    },
+    { onConflict: 'user_id,month' },
+  );
+  revalidatePath('/finances/suivi');
+}
+
+export async function updateSnapshot(formData: FormData) {
+  const { supabase } = await requireUser();
+  await supabase
+    .from('monthly_snapshots')
+    .update({
+      month: monthToDate(formData),
+      real_income: num(formData, 'real_income'),
+      real_expenses: num(formData, 'real_expenses'),
+      real_debt_payments: num(formData, 'real_debt_payments'),
+      note: optStr(formData, 'note'),
+    })
+    .eq('id', str(formData, 'id'));
+  revalidatePath('/finances/suivi');
+}
+
+export async function deleteSnapshot(formData: FormData) {
+  const { supabase } = await requireUser();
+  await supabase
+    .from('monthly_snapshots')
+    .delete()
+    .eq('id', str(formData, 'id'));
+  revalidatePath('/finances/suivi');
+}

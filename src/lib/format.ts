@@ -19,6 +19,32 @@ export function formatFrequency(frequency: string): string {
   return FREQUENCY_LABELS[frequency] ?? frequency;
 }
 
+const MONTH_NAMES = [
+  'janvier',
+  'février',
+  'mars',
+  'avril',
+  'mai',
+  'juin',
+  'juillet',
+  'août',
+  'septembre',
+  'octobre',
+  'novembre',
+  'décembre',
+];
+
+/**
+ * Formate un mois « YYYY-MM-01 » (ou « YYYY-MM ») en « août 2026 ».
+ * Parse manuellement pour éviter tout décalage de fuseau horaire.
+ */
+export function formatMonth(month: string): string {
+  const [year, m] = month.split('-');
+  const idx = parseInt(m, 10) - 1;
+  const name = MONTH_NAMES[idx] ?? m;
+  return `${name} ${year}`;
+}
+
 const MONTHLY_DIVISORS: Record<string, number> = {
   once: 0, // non récurrent → n'entre pas dans le total mensuel
   weekly: 52 / 12,
