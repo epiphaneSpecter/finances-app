@@ -48,6 +48,22 @@ export async function addIncome(formData: FormData) {
   revalidatePath('/finances');
 }
 
+export async function updateIncome(formData: FormData) {
+  const { supabase } = await requireUser();
+  await supabase
+    .from('incomes')
+    .update({
+      label: str(formData, 'label'),
+      source: optStr(formData, 'source'),
+      amount: num(formData, 'amount'),
+      frequency: str(formData, 'frequency') || 'monthly',
+      received_on: optStr(formData, 'received_on'),
+    })
+    .eq('id', str(formData, 'id'));
+  revalidatePath('/finances/revenus');
+  revalidatePath('/finances');
+}
+
 export async function deleteIncome(formData: FormData) {
   const { supabase } = await requireUser();
   await supabase.from('incomes').delete().eq('id', str(formData, 'id'));
@@ -66,6 +82,22 @@ export async function addExpense(formData: FormData) {
     frequency: str(formData, 'frequency') || 'monthly',
     due_day: optInt(formData, 'due_day'),
   });
+  revalidatePath('/finances/depenses');
+  revalidatePath('/finances');
+}
+
+export async function updateExpense(formData: FormData) {
+  const { supabase } = await requireUser();
+  await supabase
+    .from('expenses')
+    .update({
+      label: str(formData, 'label'),
+      category: str(formData, 'category') || 'autres',
+      amount: num(formData, 'amount'),
+      frequency: str(formData, 'frequency') || 'monthly',
+      due_day: optInt(formData, 'due_day'),
+    })
+    .eq('id', str(formData, 'id'));
   revalidatePath('/finances/depenses');
   revalidatePath('/finances');
 }
@@ -94,6 +126,30 @@ export async function addDebt(formData: FormData) {
     minimum_payment: num(formData, 'minimum_payment'),
     due_day: optInt(formData, 'due_day'),
   });
+  revalidatePath('/finances/dettes');
+  revalidatePath('/finances');
+}
+
+export async function updateDebt(formData: FormData) {
+  const { supabase } = await requireUser();
+  await supabase
+    .from('debts')
+    .update({
+      label: str(formData, 'label'),
+      lender: optStr(formData, 'lender'),
+      balance: num(formData, 'balance'),
+      credit_limit:
+        str(formData, 'credit_limit') === ''
+          ? null
+          : num(formData, 'credit_limit'),
+      interest_rate:
+        str(formData, 'interest_rate') === ''
+          ? null
+          : num(formData, 'interest_rate'),
+      minimum_payment: num(formData, 'minimum_payment'),
+      due_day: optInt(formData, 'due_day'),
+    })
+    .eq('id', str(formData, 'id'));
   revalidatePath('/finances/dettes');
   revalidatePath('/finances');
 }
