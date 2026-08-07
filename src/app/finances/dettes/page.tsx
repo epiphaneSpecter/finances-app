@@ -1,10 +1,45 @@
 import { createClient } from '@/lib/supabase/server';
 import { formatCurrency } from '@/lib/format';
-import { FormModal } from '@/components/FormModal';
-import { addDebt, deleteDebt } from '@/app/finances/actions';
+import { RecordModal, type FieldDef } from '@/components/RecordModal';
+import { addDebt, updateDebt, deleteDebt } from '@/app/finances/actions';
 import type { Debt } from '@/lib/types';
 
 export const metadata = { title: 'Dettes — Finances' };
+
+const FIELDS: FieldDef[] = [
+  { name: 'label', label: 'Nom', type: 'text', required: true, placeholder: 'Carte Visa' },
+  { name: 'lender', label: 'Créancier (optionnel)', type: 'text', placeholder: 'Banque, prêteur…' },
+  { name: 'balance', label: 'Solde dû ($)', type: 'number', required: true, step: '0.01', min: '0' },
+  {
+    name: 'credit_limit',
+    label: 'Limite de crédit ($, optionnel)',
+    type: 'number',
+    step: '0.01',
+    min: '0',
+  },
+  {
+    name: 'minimum_payment',
+    label: 'Paiement mensuel minimum ($)',
+    type: 'number',
+    required: true,
+    step: '0.01',
+    min: '0',
+  },
+  {
+    name: 'interest_rate',
+    label: "Taux d'intérêt annuel (%, optionnel)",
+    type: 'number',
+    step: '0.01',
+    min: '0',
+  },
+  {
+    name: 'due_day',
+    label: "Jour d'échéance (1-31, optionnel)",
+    type: 'number',
+    min: '1',
+    max: '31',
+  },
+];
 
 export default async function DettesPage() {
   const supabase = await createClient();
@@ -41,7 +76,7 @@ export default async function DettesPage() {
                     {d.due_day ? ` · le ${d.due_day}` : ''}
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <span
                     className={`amount ${overLimit ? 'negative' : ''}`}
                     title={
@@ -52,6 +87,13 @@ export default async function DettesPage() {
                   >
                     {formatCurrency(Number(d.balance))}
                   </span>
+                  <RecordModal
+                    trigger="edit"
+                    title="Modifier la dette"
+                    action={updateDebt}
+                    fields={FIELDS}
+                    values={d}
+                  />
                   <form action={deleteDebt}>
                     <input type="hidden" name="id" value={d.id} />
                     <button type="submit" className="btn ghost" aria-label="Supprimer">
@@ -65,43 +107,12 @@ export default async function DettesPage() {
         </div>
       )}
 
-      <FormModal title="Ajouter une dette" action={addDebt}>
-        <div className="field">
-          <label htmlFor="label">Nom</label>
-          <input id="label" name="label" required placeholder="Carte Visa" />
-        </div>
-        <div className="field">
-          <label htmlFor="lender">Créancier (optionnel)</label>
-          <input id="lender" name="lender" placeholder="Banque, prêteur…" />
-        </div>
-        <div className="field">
-          <label htmlFor="balance">Solde dû ($)</label>
-          <input id="balance" name="balance" type="number" step="0.01" min="0" required />
-        </div>
-        <div className="field">
-          <label htmlFor="credit_limit">Limite de crédit ($, optionnel)</label>
-          <input id="credit_limit" name="credit_limit" type="number" step="0.01" min="0" />
-        </div>
-        <div className="field">
-          <label htmlFor="minimum_payment">Paiement mensuel minimum ($)</label>
-          <input
-            id="minimum_payment"
-            name="minimum_payment"
-            type="number"
-            step="0.01"
-            min="0"
-            required
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="interest_rate">Taux d&apos;intérêt annuel (%, optionnel)</label>
-          <input id="interest_rate" name="interest_rate" type="number" step="0.01" min="0" />
-        </div>
-        <div className="field">
-          <label htmlFor="due_day">Jour d&apos;échéance (1-31, optionnel)</label>
-          <input id="due_day" name="due_day" type="number" min="1" max="31" />
-        </div>
-      </FormModal>
+      <RecordModal
+        trigger="fab"
+        title="Ajouter une dette"
+        action={addDebt}
+        fields={FIELDS}
+      />
     </div>
   );
 }

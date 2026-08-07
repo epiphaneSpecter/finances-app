@@ -1,10 +1,29 @@
 import { createClient } from '@/lib/supabase/server';
 import { formatCurrency, formatFrequency } from '@/lib/format';
-import { FormModal } from '@/components/FormModal';
-import { addIncome, deleteIncome } from '@/app/finances/actions';
+import { RecordModal, type FieldDef } from '@/components/RecordModal';
+import { addIncome, updateIncome, deleteIncome } from '@/app/finances/actions';
 import type { Income } from '@/lib/types';
 
 export const metadata = { title: 'Revenus — Finances' };
+
+const FIELDS: FieldDef[] = [
+  { name: 'label', label: 'Nom', type: 'text', required: true, placeholder: 'Contrat consulting' },
+  { name: 'source', label: 'Source (optionnel)', type: 'text', placeholder: 'Consulting, Uber…' },
+  { name: 'amount', label: 'Montant ($)', type: 'number', required: true, step: '0.01', min: '0' },
+  {
+    name: 'frequency',
+    label: 'Fréquence',
+    type: 'select',
+    defaultValue: 'monthly',
+    options: [
+      { value: 'monthly', label: 'Mensuel' },
+      { value: 'weekly', label: 'Hebdomadaire' },
+      { value: 'once', label: 'Ponctuel' },
+      { value: 'irregular', label: 'Irrégulier' },
+    ],
+  },
+  { name: 'received_on', label: 'Reçu le (optionnel)', type: 'date' },
+];
 
 export default async function RevenusPage() {
   const supabase = await createClient();
@@ -36,10 +55,17 @@ export default async function RevenusPage() {
                   {formatFrequency(i.frequency)}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span className="amount positive">
                   {formatCurrency(Number(i.amount))}
                 </span>
+                <RecordModal
+                  trigger="edit"
+                  title="Modifier le revenu"
+                  action={updateIncome}
+                  fields={FIELDS}
+                  values={i}
+                />
                 <form action={deleteIncome}>
                   <input type="hidden" name="id" value={i.id} />
                   <button type="submit" className="btn ghost" aria-label="Supprimer">
@@ -52,33 +78,12 @@ export default async function RevenusPage() {
         </div>
       )}
 
-      <FormModal title="Ajouter un revenu" action={addIncome}>
-        <div className="field">
-          <label htmlFor="label">Nom</label>
-          <input id="label" name="label" required placeholder="Contrat consulting" />
-        </div>
-        <div className="field">
-          <label htmlFor="source">Source (optionnel)</label>
-          <input id="source" name="source" placeholder="Consulting, Uber…" />
-        </div>
-        <div className="field">
-          <label htmlFor="amount">Montant ($)</label>
-          <input id="amount" name="amount" type="number" step="0.01" min="0" required />
-        </div>
-        <div className="field">
-          <label htmlFor="frequency">Fréquence</label>
-          <select id="frequency" name="frequency" defaultValue="monthly">
-            <option value="monthly">Mensuel</option>
-            <option value="weekly">Hebdomadaire</option>
-            <option value="once">Ponctuel</option>
-            <option value="irregular">Irrégulier</option>
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor="received_on">Reçu le (optionnel)</label>
-          <input id="received_on" name="received_on" type="date" />
-        </div>
-      </FormModal>
+      <RecordModal
+        trigger="fab"
+        title="Ajouter un revenu"
+        action={addIncome}
+        fields={FIELDS}
+      />
     </div>
   );
 }
