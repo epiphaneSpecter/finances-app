@@ -22,6 +22,8 @@ create extension if not exists pg_net;
 -- envoie un courriel `lead_days` jours avant la prochaine occurrence (une
 -- seule fois par échéance grâce à notifications_log).
 -- Renvoie le nombre de courriels déclenchés.
+-- (La variable est nommée `v_due` pour éviter tout conflit avec la colonne
+--  due_date de notifications_log.)
 -- ----------------------------------------------------------------------------
 create or replace function public.send_due_reminders(lead_days int default 3)
 returns int
@@ -33,7 +35,7 @@ declare
   api_key      text;
   sender       text := 'Finances <onboarding@resend.dev>';
   rec          record;
-  due_date     date;
+  v_due        date;
   last_this    int;
   last_next    int;
   first_next   date;
@@ -65,29 +67,29 @@ begin
     -- Prochaine occurrence du jour d'échéance (borné à la fin du mois).
     last_this := extract(day from (date_trunc('month', current_date)
                  + interval '1 month - 1 day'))::int;
-    due_date  := make_date(
+    v_due     := make_date(
                    extract(year  from current_date)::int,
                    extract(month from current_date)::int,
                    least(rec.due_day, last_this));
 
-    if due_date < current_date then
+    if v_due < current_date then
       first_next := (date_trunc('month', current_date) + interval '1 month')::date;
       last_next  := extract(day from (date_trunc('month', first_next)
                     + interval '1 month - 1 day'))::int;
-      due_date   := make_date(
+      v_due      := make_date(
                       extract(year  from first_next)::int,
                       extract(month from first_next)::int,
                       least(rec.due_day, last_next));
     end if;
 
-    days_left := due_date - current_date;
+    days_left := v_due - current_date;
 
     if days_left between 0 and lead_days
        and rec.email is not null
        and not exists (
          select 1 from public.notifications_log l
          where l.user_id = rec.user_id and l.kind = rec.kind
-           and l.item_id = rec.item_id and l.due_date = due_date
+           and l.item_id = rec.item_id and l.due_date = v_due
        )
     then
       perform net.http_post(
@@ -115,7 +117,7 @@ begin
       );
 
       insert into public.notifications_log (user_id, kind, item_id, due_date)
-      values (rec.user_id, rec.kind, rec.item_id, due_date);
+      values (rec.user_id, rec.kind, rec.item_id, v_due);
 
       sent_count := sent_count + 1;
     end if;
@@ -127,7 +129,6 @@ $$;
 
 -- ----------------------------------------------------------------------------
 -- Planification : chaque jour à 13:00 UTC (~9 h à Québec l'été).
--- Réexécuter unschedule d'abord évite les doublons de tâche.
 -- ----------------------------------------------------------------------------
 select cron.unschedule('rappels-echeances')
 where exists (select 1 from cron.job where jobname = 'rappels-echeances');
