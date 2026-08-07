@@ -5,10 +5,11 @@ import { usePathname } from 'next/navigation';
 import { signOut } from '@/app/login/actions';
 
 const NAV = [
-  { href: '/finances', label: 'Tableau de bord' },
+  { href: '/finances', label: 'Tableau' },
   { href: '/finances/revenus', label: 'Revenus' },
   { href: '/finances/depenses', label: 'Dépenses' },
   { href: '/finances/dettes', label: 'Dettes' },
+  { href: '/finances/suivi', label: 'Suivi' },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

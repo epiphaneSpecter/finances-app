@@ -6,7 +6,7 @@ import { useFormStatus } from 'react-dom';
 export type FieldDef = {
   name: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'select';
+  type: 'text' | 'number' | 'date' | 'month' | 'select';
   required?: boolean;
   placeholder?: string;
   step?: string;
@@ -103,10 +103,13 @@ export function RecordModal({
               )}
 
               {fields.map((f) => {
-                const prefill =
+                let prefill =
                   vals !== undefined
                     ? toInputValue(vals[f.name])
                     : (f.defaultValue ?? '');
+                // Un <input type="month"> attend « YYYY-MM » ; la valeur stockée
+                // est « YYYY-MM-01 ».
+                if (f.type === 'month' && prefill) prefill = prefill.slice(0, 7);
 
                 return (
                   <div className="field" key={f.name}>
