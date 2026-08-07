@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { formatCurrency, toMonthly } from '@/lib/format';
+import { nextDueDate, daysUntil } from '@/lib/dueDates';
 import type { Debt, Expense, Income } from '@/lib/types';
 
 export const metadata = { title: 'Tableau de bord — Finances' };
@@ -71,6 +72,24 @@ export default async function DashboardPage() {
 
   const hasData = incomes.length + expenses.length + debts.length > 0;
 
+  // --- Prochaines échéances (7 jours) -------------------------------------
+  type Upcoming = { label: string; amount: number; days: number; day: number };
+  const upcoming: Upcoming[] = [];
+  for (const e of expenses) {
+    if (e.due_day) {
+      const days = daysUntil(nextDueDate(e.due_day));
+      if (days <= 7) upcoming.push({ label: e.label, amount: Number(e.amount), days, day: e.due_day });
+    }
+  }
+  for (const d of debts) {
+    if (d.due_day && Number(d.minimum_payment) > 0) {
+      const days = daysUntil(nextDueDate(d.due_day));
+      if (days <= 7)
+        upcoming.push({ label: d.label, amount: Number(d.minimum_payment), days, day: d.due_day });
+    }
+  }
+  upcoming.sort((a, b) => a.days - b.days);
+
   return (
     <div>
       {alerts.length > 0 && (
@@ -108,6 +127,30 @@ export default async function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {upcoming.length > 0 && (
+        <>
+          <h2 className="section-title">Prochaines échéances (7 jours)</h2>
+          <div className="list">
+            {upcoming.map((u, i) => (
+              <div key={i} className="list-item">
+                <div>
+                  <div>{u.label}</div>
+                  <div className="meta">
+                    {u.days === 0
+                      ? "aujourd'hui"
+                      : u.days === 1
+                        ? 'demain'
+                        : `dans ${u.days} jours`}{' '}
+                    · le {u.day}
+                  </div>
+                </div>
+                <span className="amount">{formatCurrency(u.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {!hasData && (
         <div className="empty" style={{ marginTop: '1.5rem' }}>
